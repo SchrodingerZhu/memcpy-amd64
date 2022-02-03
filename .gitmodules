@@ -1,0 +1,6 @@
+[submodule "contrib/googletest"]
+	path = contrib/googletest
+	url = https://github.com/google/googletest
+[submodule "contrib/benchmark"]
+	path = contrib/benchmark
+	url = https://github.com/google/benchmark
