@@ -13,3 +13,8 @@ extern "C" __attribute__((visibility("default"))) void *
 MEMCPY_AMD64_SYMBOL(memcpy)(void *__restrict dst, const void *__restrict src, size_t size) {
     return memcpy_amd64::inline_memcpy(dst, src, size);
 }
+
+namespace memcpy_amd64::config {
+    size_t erms_lower_bound = 2048;
+    size_t non_temporal_lower_bound = 0xc0000;
+}

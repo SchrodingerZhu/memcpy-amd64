@@ -35,8 +35,8 @@ namespace memcpy_amd64 {
 
     namespace config {
         static inline constexpr size_t page_size = 0x1000;
-        static inline constexpr size_t erms_lower_bound = 2048;
-        static inline constexpr size_t non_temporal_lower_bound = 0xc0000;
+        extern size_t erms_lower_bound;
+        extern size_t non_temporal_lower_bound;
     };
 
     namespace vectorize {
