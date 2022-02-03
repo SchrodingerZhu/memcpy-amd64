@@ -28,20 +28,6 @@ namespace memcpy_amd64 {
         }
 
         __attribute__((always_inline)) static inline
-        bool avx2() {
-            int out[4];
-            cpuid(out, 0x00000007, 0);
-            return (out[1] & (1 << 5)) != 0;
-        }
-
-        __attribute__((always_inline)) static inline
-        bool erms() {
-            int out[4];
-            cpuid(out, 0x00000007, 0);
-            return (out[1] & (1 << 9)) != 0;
-        }
-
-        __attribute__((always_inline)) static inline
         bool rep_movsb(void *__restrict dst, const void *__restrict src, size_t size) {
             asm volatile("rep movsb"
             : "+D"(dst), "+S"(src), "+c"(size)
@@ -196,14 +182,16 @@ namespace memcpy_amd64 {
                     }
                 } else {
                     auto body = [&]() __attribute__((noinline)) {
-                        if (size >= config::non_temporal_lower_bound && detail::avx2()) {
+                        int out[4];
+                        detail::cpuid(out, 0x00000007, 0);
+                        if (size >= config::non_temporal_lower_bound && (out[1] & (1 << 5)) != 0) {
                             if (size >= 16 * config::non_temporal_lower_bound) {
                                 detail::memcpy_avx2_page4(dst, src, size);
                             } else {
                                 detail::memcpy_avx2_page2(dst, src, size);
                             }
                         }
-                        if (size >= config::erms_lower_bound && detail::erms()) {
+                        if (size >= config::erms_lower_bound && (out[1] & (1 << 5)) != 0) {
                             detail::rep_movsb(dst, src, size);
                             return true;
                         }
