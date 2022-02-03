@@ -10,9 +10,37 @@
 #include <immintrin.h>
 #include <array>
 
+#ifdef __clang__
+#define MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY __builtin_memcpy_inline
+#define MEMCPY_AMD64_UNROLL_FULLY _Pragma("clang loop unroll(full)")
+#else
+#define MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY __builtin_memcpy
+#define MEMCPY_AMD64_UNROLL_FULLY _Pragma("GCC unroll 65534")
+#endif
+
 namespace memcpy_amd64 {
 
     namespace detail {
+
+        __attribute__((always_inline)) static inline
+        void cpuid(int32_t (&out)[4], int32_t eax, int32_t ecx) {
+            __cpuid_count(eax, ecx, out[0], out[1], out[2], out[3]);
+        }
+
+        __attribute__((always_inline)) static inline
+        bool avx2() {
+            int out[4];
+            cpuid(out, 0x00000007, 0);
+            return (out[1] & (1 << 5)) != 0;
+        }
+
+        __attribute__((always_inline)) static inline
+        bool erms() {
+            int out[4];
+            cpuid(out, 0x00000007, 0);
+            return (out[1] & (1 << 9)) != 0;
+        }
+
         __attribute__((always_inline)) static inline
         bool rep_movsb(void *__restrict dst, const void *__restrict src, size_t size) {
             asm volatile("rep movsb"
@@ -22,12 +50,12 @@ namespace memcpy_amd64 {
             return dst;
         }
 
-        __attribute__((noinline, target("avx2"))) static inline void memcpy_avx2_page2(
+        __attribute__((target("avx2"))) static inline void memcpy_avx2_page2(
                 std::byte *__restrict &dst,
                 const std::byte *__restrict &src,
                 size_t &size);
 
-        __attribute__((noinline, target("avx2"))) static inline void memcpy_avx2_page4(
+        __attribute__((target("avx2"))) static inline void memcpy_avx2_page4(
                 std::byte *__restrict &dst,
                 const std::byte *__restrict &src,
                 size_t &size);
@@ -42,6 +70,10 @@ namespace memcpy_amd64 {
     namespace vectorize {
         struct V32 {
             using vector = __m256i;
+
+            struct Container {
+                vector data;
+            };
 
             __attribute__((always_inline, target("avx2"))) static inline vector aligned_load(const void *address) {
                 return _mm256_load_si256(static_cast<const vector *>(address));
@@ -91,19 +123,19 @@ namespace memcpy_amd64 {
         /// This order of branches is from the disassembly of glibc's code.
         /// We copy chunks of possibly uneven size with two overlapping movs.
         /// Example: to copy 5 bytes [0, 1, 2, 3, 4] we will copy tail [1, 2, 3, 4] first and then head [0, 1, 2, 3].
-        if (size <= 16) {
+        if (__builtin_expect(size <= 16, 1)) {
             if (size >= 8) {
                 /// Chunks of 8..16 bytes.
-                __builtin_memcpy_inline(dst + size - 8, src + size - 8, 8);
-                __builtin_memcpy_inline(dst, src, 8);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 8, src + size - 8, 8);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 8);
             } else if (size >= 4) {
                 /// Chunks of 4..7 bytes.
-                __builtin_memcpy_inline(dst + size - 4, src + size - 4, 4);
-                __builtin_memcpy_inline(dst, src, 4);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 4, src + size - 4, 4);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 4);
             } else if (size >= 2) {
                 /// Chunks of 2..3 bytes.
-                __builtin_memcpy_inline(dst + size - 2, src + size - 2, 2);
-                __builtin_memcpy_inline(dst, src, 2);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 2, src + size - 2, 2);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 2);
             } else if (size >= 1) {
                 /// A single byte.
                 *dst = *src;
@@ -115,13 +147,13 @@ namespace memcpy_amd64 {
                 /// Medium size, not enough for full loop unrolling.
 
                 /// We will copy the last 16 bytes.
-                __builtin_memcpy_inline(dst + size - 16, src + size - 16, 16);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 16, src + size - 16, 16);
 
                 /// Then we will copy every 16 bytes from the beginning in a loop.
                 /// The last loop iteration will possibly overwrite some part of already copied last 16 bytes.
                 /// This is Ok, similar to the code for small sizes above.
                 while (size > 16) {
-                    __builtin_memcpy_inline(dst, src, 16);
+                    MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
                     dst += 16;
                     src += 16;
                     size -= 16;
@@ -131,7 +163,7 @@ namespace memcpy_amd64 {
                     size_t padding = (-reinterpret_cast<size_t>(dst)) & 15;
 
                     // avoid branch
-                    __builtin_memcpy_inline(dst, src, 16);
+                    MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
                     dst += padding;
                     src += padding;
                     size -= padding;
@@ -164,14 +196,14 @@ namespace memcpy_amd64 {
                     }
                 } else {
                     auto body = [&]() __attribute__((noinline)) {
-                        if (size >= config::non_temporal_lower_bound && __builtin_cpu_supports("avx2")) {
+                        if (size >= config::non_temporal_lower_bound && detail::avx2()) {
                             if (size >= 16 * config::non_temporal_lower_bound) {
                                 detail::memcpy_avx2_page4(dst, src, size);
                             } else {
                                 detail::memcpy_avx2_page2(dst, src, size);
                             }
                         }
-                        if (size >= config::erms_lower_bound) {
+                        if (size >= config::erms_lower_bound && detail::erms()) {
                             detail::rep_movsb(dst, src, size);
                             return true;
                         }
@@ -188,7 +220,7 @@ namespace memcpy_amd64 {
 
     namespace detail {
         template<size_t page_num, size_t vec_num, typename Load>
-        __attribute__((always_inline, target("avx2"))) void memcpy_avx2_impl(
+        __attribute__((always_inline, target("avx2"))) static inline void memcpy_avx2_impl(
                 std::byte *__restrict &dst,
                 const std::byte *__restrict &src,
                 size_t &size,
@@ -196,29 +228,29 @@ namespace memcpy_amd64 {
             using namespace vectorize;
             using vector = V32::vector;
             constexpr size_t stride_size = vec_num * sizeof(vector);
-            std::array<vector, vec_num * page_num> storage{};
+            std::array<V32::Container, vec_num * page_num> storage{};
 
             while (size >= page_num * config::page_size) {
                 for (size_t i = 0; i < config::page_size / stride_size; ++i) {
                     auto target = static_cast<std::byte *>(__builtin_assume_aligned(dst, alignof(vector)));
-#pragma clang loop unroll(full)
+                    MEMCPY_AMD64_UNROLL_FULLY
                     for (size_t p = 0; p < page_num; ++p) {
                         __builtin_prefetch(src + config::page_size * p + stride_size);
                     };
 
-#pragma clang loop unroll(full)
+                    MEMCPY_AMD64_UNROLL_FULLY
                     for (size_t p = 0; p < page_num; ++p) {
-#pragma clang loop unroll(full)
+                        MEMCPY_AMD64_UNROLL_FULLY
                         for (size_t v = 0; v < vec_num; ++v) {
-                            storage[p * 4 + v] = load(src + config::page_size * p + sizeof(vector) * v);
+                            storage[p * 4 + v].data = load(src + config::page_size * p + sizeof(vector) * v);
                         };
                     };
 
-#pragma clang loop unroll(full)
+                    MEMCPY_AMD64_UNROLL_FULLY
                     for (size_t p = 0; p < page_num; ++p) {
-#pragma clang loop unroll(full)
+                        MEMCPY_AMD64_UNROLL_FULLY
                         for (size_t v = 0; v < vec_num; ++v) {
-                            V32::nt_store(target + config::page_size * p + sizeof(vector) * v, storage[p * 4 + v]);
+                            V32::nt_store(target + config::page_size * p + sizeof(vector) * v, storage[p * 4 + v].data);
                         }
                     }
                     dst += stride_size;
@@ -230,7 +262,7 @@ namespace memcpy_amd64 {
             }
         }
 
-        __attribute__((noinline, target("avx2"))) static inline void memcpy_avx2_page4(
+        __attribute__((target("avx2"))) static inline void memcpy_avx2_page4(
                 std::byte *__restrict &dst,
                 const std::byte *__restrict &src,
                 size_t &size) {
@@ -240,7 +272,7 @@ namespace memcpy_amd64 {
             auto diff =
                     (reinterpret_cast<uintptr_t>(dst) ^ reinterpret_cast<uintptr_t>(src)) & (sizeof(vector) - 1);
 
-            __builtin_memcpy_inline(dst, src, sizeof(vector));
+            MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, sizeof(vector));
             dst += dst_padding;
             src += dst_padding;
             size -= dst_padding;
@@ -252,7 +284,7 @@ namespace memcpy_amd64 {
             }
         }
 
-        __attribute__((noinline, target("avx2"))) static inline void memcpy_avx2_page2(
+        __attribute__((target("avx2"))) static inline void memcpy_avx2_page2(
                 std::byte *__restrict &dst,
                 const std::byte *__restrict &src,
                 size_t &size) {
@@ -262,7 +294,7 @@ namespace memcpy_amd64 {
             auto diff =
                     (reinterpret_cast<uintptr_t>(dst) ^ reinterpret_cast<uintptr_t>(src)) & (sizeof(vector) - 1);
 
-            __builtin_memcpy_inline(dst, src, sizeof(vector));
+            MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, sizeof(vector));
             dst += dst_padding;
             src += dst_padding;
             size -= dst_padding;

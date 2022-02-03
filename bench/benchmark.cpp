@@ -3,7 +3,7 @@
 //
 #define MEMCPY_AMD64_PREFIX custom_
 
-#include "../memcpy.cpp"
+#include "../src/memcpy.cpp"
 #include <vector>
 #include <random>
 #include <cstring>
@@ -32,16 +32,16 @@ namespace sse_only {
         if (size <= 16) {
             if (size >= 8) {
                 /// Chunks of 8..16 bytes.
-                __builtin_memcpy_inline(dst + size - 8, src + size - 8, 8);
-                __builtin_memcpy_inline(dst, src, 8);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 8, src + size - 8, 8);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 8);
             } else if (size >= 4) {
                 /// Chunks of 4..7 bytes.
-                __builtin_memcpy_inline(dst + size - 4, src + size - 4, 4);
-                __builtin_memcpy_inline(dst, src, 4);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 4, src + size - 4, 4);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 4);
             } else if (size >= 2) {
                 /// Chunks of 2..3 bytes.
-                __builtin_memcpy_inline(dst + size - 2, src + size - 2, 2);
-                __builtin_memcpy_inline(dst, src, 2);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 2, src + size - 2, 2);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 2);
             } else if (size >= 1) {
                 /// A single byte.
                 *dst = *src;
@@ -53,13 +53,13 @@ namespace sse_only {
                 /// Medium size, not enough for full loop unrolling.
 
                 /// We will copy the last 16 bytes.
-                __builtin_memcpy_inline(dst + size - 16, src + size - 16, 16);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst + size - 16, src + size - 16, 16);
 
                 /// Then we will copy every 16 bytes from the beginning in a loop.
                 /// The last loop iteration will possibly overwrite some part of already copied last 16 bytes.
                 /// This is Ok, similar to the code for small sizes above.
                 while (size > 16) {
-                    __builtin_memcpy_inline(dst, src, 16);
+                    MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
                     dst += 16;
                     src += 16;
                     size -= 16;
@@ -69,7 +69,7 @@ namespace sse_only {
                 size_t padding = (-reinterpret_cast<size_t>(dst)) & 15;
 
                 // avoid branch
-                __builtin_memcpy_inline(dst, src, 16);
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
                 dst += padding;
                 src += padding;
                 size -= padding;

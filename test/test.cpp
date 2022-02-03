@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #define MEMCPY_AMD64_PREFIX custom_
-#include "../memcpy.cpp"
+#include "../src/memcpy.cpp"
 #include <vector>
 #include <random>
 
