@@ -127,28 +127,10 @@ namespace memcpy_amd64 {
                     size -= 16;
                 }
             } else {
-                auto large_body = [&]() __attribute__((noinline)) {
-
-                    if (__builtin_expect(size >= config::non_temporal_lower_bound && __builtin_cpu_supports("avx2"),
-                                         0)) { //
-                        if (size >= 16 * config::non_temporal_lower_bound) {
-                            detail::memcpy_avx2_page4(dst, src, size);
-                        } else {
-                            detail::memcpy_avx2_page2(dst, src, size);
-                        }
-                        if (size <= 128) return false;
-                    }
-
-                    if (__builtin_expect(size >= config::erms_lower_bound, 0)) {
-                        detail::rep_movsb(dst, src, size);
-                        return true;
-                    }
-
-                    /// Align destination to 16 bytes boundary.
+                if (__builtin_expect(size < config::erms_lower_bound, 1)) {
                     size_t padding = (-reinterpret_cast<size_t>(dst)) & 15;
 
                     // avoid branch
-
                     __builtin_memcpy_inline(dst, src, 16);
                     dst += padding;
                     src += padding;
@@ -180,12 +162,25 @@ namespace memcpy_amd64 {
                         dst += 128;
                         size -= 128;
                     }
-                    return false;
+                } else {
+                    auto body = [&]() __attribute__((noinline)) {
+                        if (size >= config::non_temporal_lower_bound && __builtin_cpu_supports("avx2")) {
+                            if (size >= 16 * config::non_temporal_lower_bound) {
+                                detail::memcpy_avx2_page4(dst, src, size);
+                            } else {
+                                detail::memcpy_avx2_page2(dst, src, size);
+                            }
+                        }
+                        if (size >= config::erms_lower_bound) {
+                            detail::rep_movsb(dst, src, size);
+                            return true;
+                        }
+                        return false;
+                    };
+                    if (body()) return ret;
                 };
-
-                if (!large_body()) goto tail;
-                /// The latest remaining 0..127 bytes will be processed as usual.
             }
+            goto tail;
         }
         return ret;
     }
@@ -242,7 +237,8 @@ namespace memcpy_amd64 {
             using namespace vectorize;
             using vector = V32::vector;
             auto dst_padding = (-reinterpret_cast<uintptr_t>(dst)) & (sizeof(vector) - 1);
-            auto diff = (reinterpret_cast<uintptr_t>(dst) ^ reinterpret_cast<uintptr_t>(src)) & (sizeof(vector) - 1);
+            auto diff =
+                    (reinterpret_cast<uintptr_t>(dst) ^ reinterpret_cast<uintptr_t>(src)) & (sizeof(vector) - 1);
 
             __builtin_memcpy_inline(dst, src, sizeof(vector));
             dst += dst_padding;
@@ -263,7 +259,8 @@ namespace memcpy_amd64 {
             using namespace vectorize;
             using vector = V32::vector;
             auto dst_padding = (-reinterpret_cast<uintptr_t>(dst)) & (sizeof(vector) - 1);
-            auto diff = (reinterpret_cast<uintptr_t>(dst) ^ reinterpret_cast<uintptr_t>(src)) & (sizeof(vector) - 1);
+            auto diff =
+                    (reinterpret_cast<uintptr_t>(dst) ^ reinterpret_cast<uintptr_t>(src)) & (sizeof(vector) - 1);
 
             __builtin_memcpy_inline(dst, src, sizeof(vector));
             dst += dst_padding;
