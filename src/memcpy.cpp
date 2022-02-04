@@ -37,4 +37,5 @@ MEMCPY_AMD64_SYMBOL(memcpy_get_nontemporal_threshold)() {
 namespace memcpy_amd64::config {
     size_t erms_lower_bound = 2048;
     size_t non_temporal_lower_bound = 0xc0000;
+    bool allow_avx512 = true;
 }

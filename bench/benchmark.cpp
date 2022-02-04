@@ -136,6 +136,12 @@ run(benchmark::State &state, const std::vector<size_t> &list, Copy copy) {
         } catch (std::exception &) {}
     }
 
+    if (char *data = std::getenv("MEMCPY_ALLOW_AVX512")) {
+        try {
+            memcpy_amd64::config::non_temporal_lower_bound = static_cast<bool>(std::stoll(data));
+        } catch (std::exception &) {}
+    }
+
     std::vector<std::vector<char>> data;
     data.reserve(list.size());
     for (auto i: list) {
