@@ -146,6 +146,7 @@ namespace memcpy_amd64 {
                 }
             } else {
                 if (__builtin_expect(size < config::erms_lower_bound, 1)) {
+                    tail2:
                     size_t padding = (-reinterpret_cast<size_t>(dst)) & 15;
 
                     // avoid branch
@@ -193,11 +194,11 @@ namespace memcpy_amd64 {
                         }
                         if (size >= config::erms_lower_bound && (out[1] & (1 << 5)) != 0) {
                             detail::rep_movsb(dst, src, size);
-                            return true;
+                            size = 0;
                         }
-                        return false;
                     };
-                    if (body()) return ret;
+                    body();
+                    if (size > 128) goto tail2;
                 };
             }
             goto tail;
