@@ -24,6 +24,11 @@ MEMCPY_AMD64_SYMBOL(memcpy_set_nontemporal_threshold)(size_t limit) {
     memcpy_amd64::config::non_temporal_lower_bound = limit;
 }
 
+extern "C" __attribute__((visibility("default"))) void
+MEMCPY_AMD64_SYMBOL(memcpy_set_avx512)(bool status) {
+    memcpy_amd64::config::allow_avx512 = status;
+}
+
 extern "C" __attribute__((visibility("default"))) size_t
 MEMCPY_AMD64_SYMBOL(memcpy_get_erms_threshold)() {
     return memcpy_amd64::config::erms_lower_bound;
@@ -32,6 +37,11 @@ MEMCPY_AMD64_SYMBOL(memcpy_get_erms_threshold)() {
 extern "C" __attribute__((visibility("default"))) size_t
 MEMCPY_AMD64_SYMBOL(memcpy_get_nontemporal_threshold)() {
     return memcpy_amd64::config::non_temporal_lower_bound;
+}
+
+extern "C" __attribute__((visibility("default"))) bool
+MEMCPY_AMD64_SYMBOL(memcpy_get_avx512)() {
+    return memcpy_amd64::config::allow_avx512;
 }
 
 namespace memcpy_amd64::config {

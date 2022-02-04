@@ -19,9 +19,13 @@ void MEMCPY_AMD64_SYMBOL(memcpy_set_erms_threshold)(size_t limit);
 
 void MEMCPY_AMD64_SYMBOL(memcpy_set_nontemporal_threshold)(size_t limit);
 
+void MEMCPY_AMD64_SYMBOL(memcpy_set_avx512)(bool status);
+
 size_t MEMCPY_AMD64_SYMBOL(memcpy_get_erms_threshold)();
 
 size_t MEMCPY_AMD64_SYMBOL(memcpy_get_nontemporal_threshold)();
+
+bool MEMCPY_AMD64_SYMBOL(memcpy_get_avx512)();
 
 #ifdef __cplusplus
 }
