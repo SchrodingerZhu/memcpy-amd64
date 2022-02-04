@@ -153,7 +153,7 @@ run(benchmark::State &state, const std::vector<size_t> &list, Copy copy) {
             copy(data2[i].data(), data[i].data(), data2[i].size());
     size_t size_sum = 0;
     for (auto &i: data) {
-        size_sum += data.size();
+        size_sum += i.size();
     }
     state.SetBytesProcessed(state.iterations() * size_sum);
 }
