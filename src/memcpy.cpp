@@ -29,6 +29,11 @@ MEMCPY_AMD64_SYMBOL(memcpy_set_avx512)(bool status) {
     memcpy_amd64::config::allow_avx512 = status;
 }
 
+extern "C" __attribute__((visibility("default"))) void
+MEMCPY_AMD64_SYMBOL(memcpy_set_erms)(bool status) {
+    memcpy_amd64::config::allow_erms = status;
+}
+
 extern "C" __attribute__((visibility("default"))) size_t
 MEMCPY_AMD64_SYMBOL(memcpy_get_erms_threshold)() {
     return memcpy_amd64::config::erms_lower_bound;
@@ -44,8 +49,14 @@ MEMCPY_AMD64_SYMBOL(memcpy_get_avx512)() {
     return memcpy_amd64::config::allow_avx512;
 }
 
+extern "C" __attribute__((visibility("default"))) bool
+MEMCPY_AMD64_SYMBOL(memcpy_get_erms)() {
+    return memcpy_amd64::config::allow_erms;
+}
+
 namespace memcpy_amd64::config {
     size_t erms_lower_bound = 2048;
     size_t non_temporal_lower_bound = 0xc0000;
     bool allow_avx512 = true;
+    bool allow_erms = true;
 }

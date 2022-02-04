@@ -138,7 +138,13 @@ run(benchmark::State &state, const std::vector<size_t> &list, Copy copy) {
 
     if (char *data = std::getenv("MEMCPY_ALLOW_AVX512")) {
         try {
-            memcpy_amd64::config::non_temporal_lower_bound = static_cast<bool>(std::stoll(data));
+            memcpy_amd64::config::allow_avx512 = static_cast<bool>(std::stoll(data));
+        } catch (std::exception &) {}
+    }
+
+    if (char *data = std::getenv("MEMCPY_ALLOW_ERMS")) {
+        try {
+            memcpy_amd64::config::allow_erms = static_cast<bool>(std::stoll(data));
         } catch (std::exception &) {}
     }
 

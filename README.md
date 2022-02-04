@@ -159,5 +159,41 @@ memcpy_786432_to_12582912_sse       4605743 ns      4605610 ns          155 byte
 memcpy_above_12582912_system        5370893 ns      5369575 ns          116 bytes_per_second=6.5474G/s
 memcpy_above_12582912_custom        7936271 ns      7935497 ns           88 bytes_per_second=4.43031G/s
 memcpy_above_12582912_sse           8206285 ns      8206107 ns           86 bytes_per_second=4.28421G/s
+```
 
+- Server (Intel(R) Xeon(R) CPU E5-2630 v4 @ 2.20GHz + ALLOW_ERMS=0 + MEMCPY_NONTERMPORAL_THRESHOLD=-1)
+
+```
+Running ./memcpy_bench
+Run on (40 X 2399.94 MHz CPU s)
+CPU Caches:
+  L1 Data 32 KiB (x20)
+  L1 Instruction 32 KiB (x20)
+  L2 Unified 256 KiB (x20)
+  L3 Unified 25600 KiB (x2)
+Load Average: 16.11, 16.31, 15.31
+-------------------------------------------------------------------------------------------
+Benchmark                                 Time             CPU   Iterations UserCounters...
+-------------------------------------------------------------------------------------------
+memcpy_mixed_size_system            1571859 ns      1571612 ns          500 bytes_per_second=7.92828G/s
+memcpy_mixed_size_custom            1128255 ns      1128251 ns          573 bytes_per_second=11.0438G/s
+memcpy_mixed_size_sse               2567925 ns      2567886 ns          272 bytes_per_second=4.85231G/s
+memcpy_less_than_16_system             24.0 ns         24.0 ns     29246726 bytes_per_second=955.222M/s
+memcpy_less_than_16_custom             28.6 ns         28.6 ns     25047389 bytes_per_second=799.29M/s
+memcpy_less_than_16_sse                23.7 ns         23.7 ns     22610847 bytes_per_second=965.47M/s
+memcpy_16_to_128_system                23.5 ns         23.5 ns     27943523 bytes_per_second=10.9158G/s
+memcpy_16_to_128_custom                60.4 ns         60.4 ns      9043475 bytes_per_second=4.23706G/s
+memcpy_16_to_128_sse                   34.6 ns         34.6 ns     24649936 bytes_per_second=7.40853G/s
+memcpy_128_to_2048_system               108 ns          107 ns      6288841 bytes_per_second=30.0187G/s
+memcpy_128_to_2048_custom               191 ns          191 ns      3641932 bytes_per_second=16.8819G/s
+memcpy_128_to_2048_sse                  112 ns          112 ns      6415427 bytes_per_second=28.7896G/s
+memcpy_2048_to_786432_system          81344 ns        81073 ns         9204 bytes_per_second=9.21951G/s
+memcpy_2048_to_786432_custom          66610 ns        66606 ns        10640 bytes_per_second=11.222G/s
+memcpy_2048_to_786432_sse             86072 ns        86070 ns         8327 bytes_per_second=8.68427G/s
+memcpy_786432_to_12582912_system    2958925 ns      2958875 ns          231 bytes_per_second=6.68343G/s
+memcpy_786432_to_12582912_custom    2199050 ns      2198987 ns          336 bytes_per_second=8.99297G/s
+memcpy_786432_to_12582912_sse       4555411 ns      4555393 ns          151 bytes_per_second=4.3411G/s
+memcpy_above_12582912_system        5195001 ns      5194925 ns          136 bytes_per_second=6.76751G/s
+memcpy_above_12582912_custom        4581617 ns      4548292 ns          155 bytes_per_second=7.72966G/s
+memcpy_above_12582912_sse           8489892 ns      8489583 ns           87 bytes_per_second=4.14116G/s
 ```

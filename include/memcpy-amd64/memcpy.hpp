@@ -86,6 +86,125 @@ namespace memcpy_amd64 {
                 size -= 128;
             }
         }
+
+        template<uint8_t delta>
+        __attribute__((target("ssse3"))) static inline void memcpy_ssse3_loop(std::byte *__restrict &dst,
+                                                                              const std::byte *__restrict &src,
+                                                                              size_t &size) {
+            src -= delta;
+            size += delta;
+
+            __m128i c0, c1, c2, c3, c4, c5, c6, c7, c8;
+            while (size >= 144) {
+                const auto *source = __builtin_assume_aligned(reinterpret_cast<const __m128i *>(src), 16);
+                auto *dest = __builtin_assume_aligned(reinterpret_cast<const __m128i *>(dst), 16);
+
+                __builtin_prefetch(src + 8 * 16);
+
+                c0 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 0);
+                c1 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 1);
+                c2 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 2);
+                c3 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 3);
+                c4 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 4);
+                c5 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 5);
+                c6 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 6);
+                c7 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 7);
+                c8 = _mm_load_si128(reinterpret_cast<const __m128i *>(source) + 8);
+
+                src += 128;
+
+                if constexpr(delta != 0) {
+                    c0 = _mm_alignr_epi8(c1, c0, delta);
+                    c1 = _mm_alignr_epi8(c2, c1, delta);
+                    c2 = _mm_alignr_epi8(c3, c2, delta);
+                    c3 = _mm_alignr_epi8(c4, c3, delta);
+                    c4 = _mm_alignr_epi8(c5, c4, delta);
+                    c5 = _mm_alignr_epi8(c6, c5, delta);
+                    c6 = _mm_alignr_epi8(c7, c6, delta);
+                    c7 = _mm_alignr_epi8(c8, c7, delta);
+                }
+
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 0), c0);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 1), c1);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 2), c2);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 3), c3);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 4), c4);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 5), c5);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 6), c6);
+                _mm_stream_si128((reinterpret_cast<__m128i *>(dest) + 7), c7);
+                dst += 128;
+                size -= 128;
+            }
+            dst -= delta;
+        }
+
+        __attribute__((target("ssse3"))) static inline void memcpy_ssse3_mux(std::byte *__restrict &dst,
+                                                                             const std::byte *__restrict &src,
+                                                                             size_t &size) {
+            MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
+            dst += 16;
+            src += 16;
+            size -= 16;
+
+            auto delta = reinterpret_cast<uintptr_t>(src) % 16;
+
+            switch (delta) {
+                case 0:
+                    memcpy_ssse3_loop<0>(dst, src, size);
+                    break;
+                case 1:
+                    memcpy_ssse3_loop<1>(dst, src, size);
+                    break;
+                case 2:
+                    memcpy_ssse3_loop<2>(dst, src, size);
+                    break;
+                case 3:
+                    memcpy_ssse3_loop<3>(dst, src, size);
+                    break;
+                case 4:
+                    memcpy_ssse3_loop<4>(dst, src, size);
+                    break;
+                case 5:
+                    memcpy_ssse3_loop<5>(dst, src, size);
+                    break;
+                case 6:
+                    memcpy_ssse3_loop<6>(dst, src, size);
+                    break;
+                case 7:
+                    memcpy_ssse3_loop<7>(dst, src, size);
+                    break;
+                case 8:
+                    memcpy_ssse3_loop<8>(dst, src, size);
+                    break;
+                case 9:
+                    memcpy_ssse3_loop<9>(dst, src, size);
+                    break;
+                case 10:
+                    memcpy_ssse3_loop<10>(dst, src, size);
+                    break;
+                case 11:
+                    memcpy_ssse3_loop<11>(dst, src, size);
+                    break;
+                case 12:
+                    memcpy_ssse3_loop<12>(dst, src, size);
+                    break;
+                case 13:
+                    memcpy_ssse3_loop<13>(dst, src, size);
+                    break;
+                case 14:
+                    memcpy_ssse3_loop<14>(dst, src, size);
+                    break;
+                default:
+                    memcpy_ssse3_loop<15>(dst, src, size);
+                    break;
+            }
+            while (size > 16) {
+                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
+                dst += 16;
+                src += 16;
+                size -= 16;
+            }
+        }
     }
 
     namespace config {
@@ -93,6 +212,7 @@ namespace memcpy_amd64 {
         extern size_t erms_lower_bound;
         extern size_t non_temporal_lower_bound;
         extern bool allow_avx512;
+        extern bool allow_erms;
     };
 
     namespace vectorize {
@@ -138,15 +258,18 @@ namespace memcpy_amd64 {
                 vector data;
             };
 
-            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline vector aligned_load(const void *address) {
+            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline vector
+            aligned_load(const void *address) {
                 return _mm512_load_si512(static_cast<const vector *>(address));
             }
 
-            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline vector unaligned_load(const void *address) {
+            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline vector
+            unaligned_load(const void *address) {
                 return _mm512_loadu_si512(static_cast<const vector *>(address));
             }
 
-            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline vector nt_load(const void *address) {
+            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline vector
+            nt_load(const void *address) {
                 return _mm512_stream_load_si512(static_cast<vector *>(const_cast<void *>(address)));
             }
 
@@ -155,7 +278,7 @@ namespace memcpy_amd64 {
                 return _mm512_store_si512(static_cast<vector *>(address), val);
             }
 
-            __attribute__((always_inline,target("avx512vl,avx512f,ssse3"))) static inline void
+            __attribute__((always_inline, target("avx512vl,avx512f,ssse3"))) static inline void
             unaligned_store(void *address, const vector &val) {
                 return _mm512_storeu_si512(static_cast<vector *>(address), val);
             }
@@ -223,7 +346,6 @@ namespace memcpy_amd64 {
                 }
             } else {
                 if (__builtin_expect(size < config::erms_lower_bound, 1)) {
-                    tail2:
                     size_t padding = (-reinterpret_cast<size_t>(dst)) & 15;
 
                     // avoid branch
@@ -240,7 +362,6 @@ namespace memcpy_amd64 {
                     auto body = [&]() __attribute__((noinline)) {
                         int out[4];
                         detail::cpuid(out, 0x00000007, 0);
-
                         if (size >= config::non_temporal_lower_bound) {
                             if ((out[1] & (1 << 31)) != 0 && config::allow_avx512) {
                                 if (size >= 16 * config::non_temporal_lower_bound) {
@@ -256,14 +377,26 @@ namespace memcpy_amd64 {
                                 }
                             }
                         }
-                        if (size >= config::erms_lower_bound && (out[1] & (1 << 9)) != 0) {
+                        if (size >= config::erms_lower_bound && (out[1] & (1 << 9)) != 0 && config::allow_erms) {
                             detail::rep_movsb(dst, src, size);
                             size = 0;
                         }
+                        if (size > 128) {
+                            size_t padding = (-reinterpret_cast<size_t>(dst)) & 15;
+                            MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
+                            dst += padding;
+                            src += padding;
+                            size -= padding;
+                            detail::cpuid(out, 0x00000001, 0);
+                            if ((out[2] & (1 << 9)) != 0) {
+                                detail::memcpy_ssse3_mux(dst, src, size);
+                            } else {
+                                detail::memcpy_sse_loop(dst, src, size);
+                            }
+                        }
                     };
                     body();
-                    if (size > 128) goto tail2;
-                };
+                }
             }
             goto tail;
         }
@@ -304,7 +437,8 @@ namespace memcpy_amd64 {
                     for (size_t p = 0; p < page_num; ++p) {
                         MEMCPY_AMD64_UNROLL_FULLY
                         for (size_t v = 0; v < vec_num; ++v) {
-                            VecTrait::nt_store(target + config::page_size * p + sizeof(vector) * v, storage[p * 4 + v].data);
+                            VecTrait::nt_store(target + config::page_size * p + sizeof(vector) * v,
+                                               storage[p * 4 + v].data);
                         }
                     }
                     dst += stride_size;
@@ -348,7 +482,8 @@ namespace memcpy_amd64 {
                     for (size_t p = 0; p < page_num; ++p) {
                         MEMCPY_AMD64_UNROLL_FULLY
                         for (size_t v = 0; v < vec_num; ++v) {
-                            VecTrait::nt_store(target + config::page_size * p + sizeof(vector) * v, storage[p * 4 + v].data);
+                            VecTrait::nt_store(target + config::page_size * p + sizeof(vector) * v,
+                                               storage[p * 4 + v].data);
                         }
                     }
                     dst += stride_size;
