@@ -256,7 +256,7 @@ namespace memcpy_amd64 {
                                 }
                             }
                         }
-                        if (size >= config::erms_lower_bound && (out[1] & (1 << 5)) != 0) {
+                        if (size >= config::erms_lower_bound && (out[1] & (1 << 9)) != 0) {
                             detail::rep_movsb(dst, src, size);
                             size = 0;
                         }
