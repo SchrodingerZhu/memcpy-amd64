@@ -122,7 +122,20 @@ std::vector<char> gen_data(size_t size) {
 }
 
 template<class Copy>
-__attribute__((always_inline)) static inline void run(benchmark::State &state, const std::vector<size_t> &list, Copy copy) {
+__attribute__((always_inline)) static inline void
+run(benchmark::State &state, const std::vector<size_t> &list, Copy copy) {
+    if (char *data = std::getenv("MEMCPY_ERMS_THRESHOLD")) {
+        try {
+            memcpy_amd64::config::erms_lower_bound = static_cast<size_t>(std::stoll(data));
+        } catch (std::exception &) {}
+    }
+
+    if (char *data = std::getenv("MEMCPY_NONTERMPORAL_THRESHOLD")) {
+        try {
+            memcpy_amd64::config::non_temporal_lower_bound = static_cast<size_t>(std::stoll(data));
+        } catch (std::exception &) {}
+    }
+
     std::vector<std::vector<char>> data;
     data.reserve(list.size());
     for (auto i: list) {
