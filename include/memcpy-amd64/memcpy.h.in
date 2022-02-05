@@ -23,13 +23,17 @@ void MEMCPY_AMD64_SYMBOL(memcpy_set_avx512)(bool status);
 
 void MEMCPY_AMD64_SYMBOL(memcpy_set_erms)(bool status);
 
+void MEMCPY_AMD64_SYMBOL(memcpy_set_ssse3)(bool status);
+
 size_t MEMCPY_AMD64_SYMBOL(memcpy_get_erms_threshold)();
 
 size_t MEMCPY_AMD64_SYMBOL(memcpy_get_nontemporal_threshold)();
 
 bool MEMCPY_AMD64_SYMBOL(memcpy_get_avx512)();
 
-void MEMCPY_AMD64_SYMBOL(memcpy_set_erms)(bool status);
+bool MEMCPY_AMD64_SYMBOL(memcpy_get_erms)();
+
+bool MEMCPY_AMD64_SYMBOL(memcpy_get_ssse3)();
 
 #ifdef __cplusplus
 }

@@ -148,6 +148,12 @@ run(benchmark::State &state, const std::vector<size_t> &list, Copy copy) {
         } catch (std::exception &) {}
     }
 
+    if (char *data = std::getenv("MEMCPY_ALLOW_SSSE3")) {
+        try {
+            memcpy_amd64::config::allow_ssse3 = static_cast<bool>(std::stoll(data));
+        } catch (std::exception &) {}
+    }
+
     std::vector<std::vector<char>> data;
     data.reserve(list.size());
     for (auto i: list) {

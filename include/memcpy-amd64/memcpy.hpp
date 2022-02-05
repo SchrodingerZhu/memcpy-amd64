@@ -213,6 +213,7 @@ namespace memcpy_amd64 {
         extern size_t non_temporal_lower_bound;
         extern bool allow_avx512;
         extern bool allow_erms;
+        extern bool allow_ssse3;
     };
 
     namespace vectorize {
@@ -388,7 +389,7 @@ namespace memcpy_amd64 {
                             src += padding;
                             size -= padding;
                             detail::cpuid(out, 0x00000001, 0);
-                            if ((out[2] & (1 << 9)) != 0) {
+                            if (config::allow_ssse3 && (out[2] & (1 << 9)) != 0) {
                                 detail::memcpy_ssse3_mux(dst, src, size);
                             } else {
                                 detail::memcpy_sse_loop(dst, src, size);

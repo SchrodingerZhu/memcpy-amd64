@@ -88,7 +88,7 @@ memcpy_above_12582912_custom        6704891 ns      6689249 ns          106 byte
 memcpy_above_12582912_sse           5582536 ns      5569464 ns          124 bytes_per_second=6.31241G/s
 ```
 
-- Server (Intel(R) Xeon(R) Silver 4214R CPU @ 2.40GHz, clang 13 + ERMS_THRESHOLD=-1 + NONTERMPORAL_THRESHOLD=-1)
+- Server (Intel(R) Xeon(R) Silver 4214R CPU @ 2.40GHz, clang 13 + ERMS_THRESHOLD=-1 + NONTERMPORAL_THRESHOLD=-1 + ALLOW_SSSE3=0)
 ```
 Running ./memcpy_bench
 Run on (48 X 2400 MHz CPU s)
