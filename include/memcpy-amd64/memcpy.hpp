@@ -198,12 +198,6 @@ namespace memcpy_amd64 {
                     memcpy_ssse3_loop<15>(dst, src, size);
                     break;
             }
-            while (size > 16) {
-                MEMCPY_AMD64_COMPILER_BUILTIN_MEMCPY(dst, src, 16);
-                dst += 16;
-                src += 16;
-                size -= 16;
-            }
         }
     }
 
@@ -398,8 +392,8 @@ namespace memcpy_amd64 {
                     };
                     body();
                 }
+                goto tail;
             }
-            goto tail;
         }
         return ret;
     }
