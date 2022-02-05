@@ -21,6 +21,7 @@ target_link_options(memcpy-amd64-shared PRIVATE
 
 option(MEMCPY_AMD64_ENABLE_BENCHMARK "enable benchmark" ON)
 option(MEMCPY_AMD64_ENABLE_TEST "enable test" ON)
+option(MEMCPY_AMD64_ENABLE_FUZZ "enable fuzz test" ON)
 
 if(MEMCPY_AMD64_ENABLE_TEST)
     add_subdirectory(contrib/googletest)
@@ -47,3 +48,7 @@ target_include_directories(memcpy-amd64 INTERFACE ${CMAKE_CURRENT_BINARY_DIR}/in
 target_link_libraries(memcpy-amd64-shared memcpy-amd64)
 target_link_libraries(memcpy-amd64-static memcpy-amd64)
 target_link_libraries(memcpy-amd64-object memcpy-amd64)
+
+if (MEMCPY_AMD64_ENABLE_FUZZ)
+    add_subdirectory(fuzz)
+endif()
