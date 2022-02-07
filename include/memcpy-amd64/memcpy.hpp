@@ -469,7 +469,7 @@ namespace memcpy_amd64 {
                     for (size_t p = 0; p < page_num; ++p) {
                         MEMCPY_AMD64_UNROLL_FULLY
                         for (size_t v = 0; v < vec_num; ++v) {
-                            storage[p * 4 + v].data = load(src + config::page_size * p + sizeof(vector) * v);
+                            storage[p * vec_num + v].data = load(src + config::page_size * p + sizeof(vector) * v);
                         };
                     };
 
@@ -478,7 +478,7 @@ namespace memcpy_amd64 {
                         MEMCPY_AMD64_UNROLL_FULLY
                         for (size_t v = 0; v < vec_num; ++v) {
                             VecTrait::nt_store(target + config::page_size * p + sizeof(vector) * v,
-                                               storage[p * 4 + v].data);
+                                               storage[p * vec_num + v].data);
                         }
                     }
                     dst += stride_size;
